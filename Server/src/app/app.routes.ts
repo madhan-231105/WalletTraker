@@ -5,7 +5,7 @@ import { HomeComponent } from './home/home';
 // Import new components (create these next)
 import { DashboardComponent } from './components/dashboard/dashboard';
 import { BillingComponent } from './components/billing/billing';
-//import { InventoryComponent } from './components/inventory/inventory';
+import { InventoryComponent } from './components/inventory/inventory';
 //import { ReportsComponent } from './components/reports/reports';
 //import { QrPaymentComponent } from './components/qr-payment/qr-payment';
 
@@ -22,7 +22,7 @@ export const routes: Routes = [
   // New WalletTracker routes
   { path: 'dashboard', component: DashboardComponent },
   { path: 'billing', component: BillingComponent },
-  //{ path: 'inventory', component: InventoryComponent },
+  { path: 'inventory', component: InventoryComponent },
   //{ path: 'reports', component: ReportsComponent },
   //{ path: 'qr-payment', component: QrPaymentComponent },
   

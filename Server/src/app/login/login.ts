@@ -76,26 +76,25 @@ export class LoginComponent {
     });
   }
 
-  private handleSuccessfulLogin() {
-    // Small delay to ensure any auth tokens are properly set
-    setTimeout(() => {
-      console.log('Current URL before navigation:', this.router.url);
-      console.log('Attempting to navigate to /home');
-      
-      this.router.navigate(['/home'], { replaceUrl: true }).then(
-        (navigationSuccess) => {
-          console.log('Navigation successful:', navigationSuccess);
-          console.log('Current URL after navigation:', this.router.url);
-          this.isLoading = false;
-        }
-      ).catch((error) => {
-        console.error('Navigation error:', error);
+private handleSuccessfulLogin() {
+  setTimeout(() => {
+    console.log('Current URL before navigation:', this.router.url);
+    console.log('Attempting to navigate to /dashboard'); // Changed from /home
+    
+    this.router.navigate(['/dashboard'], { replaceUrl: true }).then( // Changed from /home to /dashboard
+      (navigationSuccess) => {
+        console.log('Navigation successful:', navigationSuccess);
+        console.log('Current URL after navigation:', this.router.url);
         this.isLoading = false;
-        // Fallback navigation
-        window.location.href = '/home';
-      });
-    }, 100);
-  }
+      }
+    ).catch((error) => {
+      console.error('Navigation error:', error);
+      this.isLoading = false;
+      // Fallback navigation
+      window.location.href = '/dashboard'; // Changed from /home to /dashboard
+    });
+  }, 100);
+}
 
   private markFormGroupTouched() {
     Object.keys(this.loginForm.controls).forEach(field => {

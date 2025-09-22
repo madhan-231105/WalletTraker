@@ -2,6 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import QRCode from 'qrcode';
+import jsPDF from 'jspdf';
 
 interface Product {
   id: string;
@@ -235,10 +237,11 @@ interface Bill {
             
             <div class="qr-section" *ngIf="currentBill.paymentMethod === 'upi'">
               <div class="qr-code">
-                <div class="qr-placeholder">
-                  📱 QR Code
-                  <small>Customer scans to pay</small>
+                <img *ngIf="upiQrCode" [src]="upiQrCode" alt="UPI QR Code" class="qr-image">
+                <div *ngIf="!upiQrCode" class="qr-placeholder">
+                  Generating QR Code...
                 </div>
+                <small>Customer scans to pay</small>
               </div>
             </div>
 
@@ -311,6 +314,7 @@ export class BillingComponent implements OnInit {
   cashReceived = 0;
   showPaymentModal = false;
   showSuccessModal = false;
+  upiQrCode: string | null = null;
 
   // Mock products data
   availableProducts: Product[] = [
@@ -423,12 +427,16 @@ export class BillingComponent implements OnInit {
 
   processBill() {
     if (!this.currentBill.paymentMethod) return;
+    if (this.currentBill.paymentMethod === 'upi') {
+      this.generateUpiQrCode();
+    }
     this.showPaymentModal = true;
   }
 
   closePaymentModal() {
     this.showPaymentModal = false;
     this.cashReceived = 0;
+    this.upiQrCode = null;
   }
 
   calculateChange() {
@@ -472,7 +480,7 @@ export class BillingComponent implements OnInit {
   }
 
   printBill() {
-    this.downloadBillAsPdf();
+    this.downloadBillAsPdf(true);
   }
 
   startNewBill() {
@@ -503,6 +511,27 @@ export class BillingComponent implements OnInit {
   toggleBarcodeScanner() {
     // Mock barcode scanner
     alert('📷 Barcode Scanner\n\nIn a real app, this would:\n- Open camera\n- Scan product barcodes\n- Automatically add products to bill');
+  }
+
+  generateUpiQrCode() {
+    const pa = 'wallettracker@upi'; // Replace with actual VPA
+    const pn = 'WalletTracker';
+    const am = this.currentBill.total.toFixed(2);
+    const cu = 'INR';
+    const tn = `Payment for Bill ${this.currentBill.billNumber}`;
+    const tr = this.currentBill.billNumber;
+
+    const upiUri = `upi://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=${encodeURIComponent(cu)}&tn=${encodeURIComponent(tn)}&tr=${encodeURIComponent(tr)}`;
+
+    QRCode.toDataURL(upiUri, { errorCorrectionLevel: 'H', scale: 4 }, (error: Error | null | undefined, url: string) => {
+      if (error) {
+        console.error('Error generating UPI QR code:', error);
+        this.upiQrCode = null;
+        alert('Failed to generate UPI QR code. Please try again.');
+      } else {
+        this.upiQrCode = url;
+      }
+    });
   }
 
   // Generating TXT bill
@@ -550,76 +579,64 @@ export class BillingComponent implements OnInit {
     window.URL.revokeObjectURL(url);
   }
 
-  // Generating LaTeX bill
-  generateLatexBill(): string {
-    let latex = `\\documentclass[a4paper,12pt]{article}
-\\usepackage{geometry}
-\\geometry{left=2cm,right=2cm,top=2cm,bottom=2cm}
-\\usepackage{booktabs}
-\\usepackage{array}
-\\usepackage{parskip}
-\\usepackage{times}
-\\begin{document}
+  downloadBillAsPdf(print = false) {
+    const doc = new jsPDF();
+    let y = 15;
 
-\\begin{center}
-{\\Large \\textbf{WALLETTRACKER BILL}} \\\\
-\\vspace{0.5cm}
-Bill \\#: ${this.currentBill.billNumber} \\\\
-Date: ${this.currentBill.timestamp.toLocaleString()} \\\\
-`;
+    doc.setFontSize(18);
+    doc.text('WALLETTRACKER BILL', 105, y, { align: 'center' });
+    y += 15;
+
+    doc.setFontSize(12);
+    doc.text(`Bill #: ${this.currentBill.billNumber}`, 20, y);
+    y += 10;
+    doc.text(`Date: ${this.currentBill.timestamp.toLocaleString()}`, 20, y);
+    y += 10;
     if (this.currentBill.customerPhone) {
-      latex += `Customer Phone: ${this.currentBill.customerPhone} \\\\
-`;
+      doc.text(`Customer Phone: ${this.currentBill.customerPhone}`, 20, y);
+      y += 10;
     }
-    latex += `\\end{center}
-\\vspace{0.5cm}
 
-\\begin{tabular}{>{\\raggedright\\arraybackslash}p{6cm} r r r}
-\\toprule
-\\textbf{Item} & \\textbf{Qty} & \\textbf{Price} & \\textbf{Subtotal} \\\\
-\\midrule
-`;
+    doc.text('Items:', 20, y);
+    y += 10;
+
     this.currentBill.items.forEach(item => {
-      latex += `${item.product.name} (${item.product.category}) & ${item.quantity} & ₹${item.product.price.toFixed(2)} & ₹${item.subtotal.toFixed(2)} \\\\
-`;
+      doc.text(`${item.product.name} (${item.product.category})`, 20, y);
+      doc.text(`Qty: ${item.quantity} x ₹${item.product.price.toFixed(2)}`, 30, y + 5);
+      doc.text(`Subtotal: ₹${item.subtotal.toFixed(2)}`, 30, y + 10);
+      y += 20;
     });
-    latex += `\\bottomrule
-\\end{tabular}
 
-\\vspace{0.5cm}
-\\begin{tabular}{lr}
-Subtotal & ₹${this.currentBill.subtotal.toFixed(2)} \\\\
-Discount (${this.discountPercent}\\%) & ₹${this.currentBill.discount.toFixed(2)} \\\\
-Tax (18\\% GST) & ₹${this.currentBill.tax.toFixed(2)} \\\\
-\\textbf{Total} & \\textbf{₹${this.currentBill.total.toFixed(2)}} \\\\
-Payment Method & ${this.getPaymentMethodText()} \\\\
-`;
+    doc.text(`Subtotal: ₹${this.currentBill.subtotal.toFixed(2)}`, 20, y);
+    y += 10;
+    doc.text(`Discount (${this.discountPercent}%): ₹${this.currentBill.discount.toFixed(2)}`, 20, y);
+    y += 10;
+    doc.text(`Tax (18% GST): ₹${this.currentBill.tax.toFixed(2)}`, 20, y);
+    y += 10;
+    doc.setFontSize(14);
+    doc.text(`Total: ₹${this.currentBill.total.toFixed(2)}`, 20, y);
+    doc.setFontSize(12);
+    y += 10;
+    doc.text(`Payment Method: ${this.getPaymentMethodText()}`, 20, y);
     if (this.currentBill.paymentMethod === 'cash' && this.cashReceived > 0) {
-      latex += `Cash Received & ₹${this.cashReceived.toFixed(2)} \\\\
-Change Given & ₹${this.getChangeAmount().toFixed(2)} \\\\
-`;
+      y += 10;
+      doc.text(`Cash Received: ₹${this.cashReceived.toFixed(2)}`, 20, y);
+      y += 10;
+      doc.text(`Change Given: ₹${this.getChangeAmount().toFixed(2)}`, 20, y);
     }
-    latex += `\\end{tabular}
+    if (this.currentBill.paymentMethod === 'upi' && this.upiQrCode) {
+      y += 20;
+      doc.addImage(this.upiQrCode, 'PNG', 20, y, 50, 50);
+      y += 60;
+    }
+    y += 20;
+    doc.text('Thank you for shopping with us!', 105, y, { align: 'center' });
 
-\\vspace{1cm}
-\\begin{center}
-Thank you for shopping with us!
-\\end{center}
-
-\\end{document}`;
-    return latex;
-  }
-
-  downloadBillAsPdf() {
-    const latexContent = this.generateLatexBill();
-    const blob = new Blob([latexContent], { type: 'text/latex' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bill_${this.currentBill.billNumber}.tex`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
+    if (print) {
+      doc.autoPrint();
+      doc.output('dataurlnewwindow');
+    } else {
+      doc.save(`bill_${this.currentBill.billNumber}.pdf`);
+    }
   }
 }

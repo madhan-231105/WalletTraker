@@ -318,14 +318,14 @@ export class BillingComponent implements OnInit {
 
   // Mock products data
   availableProducts: Product[] = [
-    { id: 'P001', name: 'Bluetooth Headphones', price: 1299.00, stock: 25, category: 'Electronics', barcode: '1234567890' },
+    { id: 'P001', name: 'Bluetooth Headphones', price: 1.00, stock: 25, category: 'Electronics', barcode: '1234567890' },
     { id: 'P002', name: 'Phone Case', price: 299.00, stock: 50, category: 'Accessories', barcode: '2345678901' },
     { id: 'P003', name: 'USB Cable', price: 149.00, stock: 30, category: 'Accessories', barcode: '3456789012' },
     { id: 'P004', name: 'Power Bank', price: 899.00, stock: 15, category: 'Electronics', barcode: '4567890123' },
     { id: 'P005', name: 'Screen Guard', price: 199.00, stock: 8, category: 'Accessories', barcode: '5678901234' },
     { id: 'P006', name: 'Wireless Mouse', price: 699.00, stock: 20, category: 'Electronics', barcode: '6789012345' },
     { id: 'P007', name: 'Keyboard', price: 1199.00, stock: 12, category: 'Electronics', barcode: '7890123456' },
-    { id: 'P008', name: 'Webcam', price: 1599.00, stock: 5, category: 'Electronics', barcode: '8901234567' }
+    { id: 'P008', name: 'Webcam', price: 1.00, stock: 5, category: 'Electronics', barcode: '8901234567' }
   ];
 
   currentBill: Bill = {
@@ -513,28 +513,50 @@ export class BillingComponent implements OnInit {
     alert('📷 Barcode Scanner\n\nIn a real app, this would:\n- Open camera\n- Scan product barcodes\n- Automatically add products to bill');
   }
 
+  generateUpiTransactionNote(): string {
+    // Create a concise, GPay-compatible transaction note
+    let note = `Bill${this.currentBill.billNumber}:`;
+    const itemSummaries = this.currentBill.items.map(item => 
+      `${item.quantity}x${item.product.name.replace(/[^a-zA-Z0-9]/g, '')}`
+    );
+    note += itemSummaries.join(',');
+    note += `,${this.currentBill.total.toFixed(2)}`;
+    
+    // Truncate to 80 characters for GPay compatibility
+    if (note.length > 80) {
+      note = note.substring(0, 77) + '...';
+    }
+    console.log('Transaction Note:', note);
+    return note;
+  }
+
   generateUpiQrCode() {
-    const pa = 'wallettracker@upi'; // Replace with actual VPA
+    // Use provided VPA
+    const pa = 'sbragul26@okicici';
     const pn = 'WalletTracker';
     const am = this.currentBill.total.toFixed(2);
     const cu = 'INR';
-    const tn = `Payment for Bill ${this.currentBill.billNumber}`;
+    const tn = this.generateUpiTransactionNote();
     const tr = this.currentBill.billNumber;
 
+    // Minimal UPI URI for GPay compatibility
     const upiUri = `upi://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=${encodeURIComponent(cu)}&tn=${encodeURIComponent(tn)}&tr=${encodeURIComponent(tr)}`;
+
+    // Log URI for debugging
+    console.log('UPI URI:', upiUri);
 
     QRCode.toDataURL(upiUri, { errorCorrectionLevel: 'H', scale: 4 }, (error: Error | null | undefined, url: string) => {
       if (error) {
         console.error('Error generating UPI QR code:', error);
         this.upiQrCode = null;
-        alert('Failed to generate UPI QR code. Please try again.');
+        alert('Failed to generate UPI QR code. Please check the payment details and try again.');
       } else {
         this.upiQrCode = url;
       }
     });
   }
 
-  // Generating TXT bill
+  // Generating TXT bill (full details)
   generateTxtBill(): string {
     let txt = `----------------------------------------\n`;
     txt += `        WALLETTRACKER BILL\n`;

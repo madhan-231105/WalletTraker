@@ -1,54 +1,78 @@
+<!-- login.html -->
 <div class="login-container">
   <div class="login-card">
-    <h2>Login</h2>
-    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+    <div class="login-header">
+      <h1>Welcome Back</h1>
+      <p>Please sign in to your account</p>
+    </div>
+
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
       <div class="form-group">
         <label for="email">Email</label>
-        <input 
-          id="email" 
-          type="email" 
-          formControlName="email" 
+        <input
+          id="email"
+          type="email"
+          formControlName="email"
+          class="form-control"
+          [class.error]="email?.invalid && email?.touched"
           placeholder="Enter your email"
-          [class.invalid]="loginForm.get('email')?.invalid && loginForm.get('email')?.touched"
-        >
-        <div class="error" *ngIf="loginForm.get('email')?.hasError('required') && loginForm.get('email')?.touched">
-          Email is required
-        </div>
-        <div class="error" *ngIf="loginForm.get('email')?.hasError('email') && loginForm.get('email')?.touched">
-          Please enter a valid email
+        />
+        <div class="error-message" *ngIf="email?.invalid && email?.touched">
+          <span *ngIf="email?.errors?.['required']">Email is required</span>
+          <span *ngIf="email?.errors?.['email']">Please enter a valid email</span>
         </div>
       </div>
 
       <div class="form-group">
         <label for="password">Password</label>
-        <input 
-          id="password" 
-          type="password" 
-          formControlName="password" 
+        <input
+          id="password"
+          type="password"
+          formControlName="password"
+          class="form-control"
+          [class.error]="password?.invalid && password?.touched"
           placeholder="Enter your password"
-          [class.invalid]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
-        >
-        <div class="error" *ngIf="loginForm.get('password')?.hasError('required') && loginForm.get('password')?.touched">
-          Password is required
-        </div>
-        <div class="error" *ngIf="loginForm.get('password')?.hasError('minlength') && loginForm.get('password')?.touched">
-          Password must be at least 6 characters
+        />
+        <div class="error-message" *ngIf="password?.invalid && password?.touched">
+          <span *ngIf="password?.errors?.['required']">Password is required</span>
+          <span *ngIf="password?.errors?.['minlength']">Password must be at least 6 characters</span>
         </div>
       </div>
 
-      <button type="submit" [disabled]="loginForm.invalid">Login</button>
+      <button 
+        type="submit" 
+        class="btn-primary"
+        [disabled]="loginForm.invalid || isLoading"
+      >
+        {{ isLoading ? 'Signing in...' : 'Sign In' }}
+      </button>
     </form>
 
     <div class="divider">
-      <span>OR</span>
+      <span>or continue with</span>
     </div>
 
-    <div class="social-login">
-      <button class="google-btn" (click)="loginWithGoogle()">
-        <img src="assets/google-icon.svg" alt="Google Icon"> Sign in with Google
+    <div class="social-buttons">
+      <button 
+        type="button" 
+        (click)="loginWithGoogle()" 
+        class="btn-social google"
+        [disabled]="isLoading"
+      >
+        <!-- Using Unicode/Emoji instead of SVG -->
+        <span class="icon">🔍</span>
+        <span>Google</span>
       </button>
-      <button class="github-btn" (click)="loginWithGithub()">
-        <img src="assets/github-icon.svg" alt="GitHub Icon"> Sign in with GitHub
+
+      <button 
+        type="button" 
+        (click)="loginWithGithub()" 
+        class="btn-social github"
+        [disabled]="isLoading"
+      >
+        <!-- Using Unicode/Emoji instead of SVG -->
+        <span class="icon">⚡</span>
+        <span>GitHub</span>
       </button>
     </div>
   </div>

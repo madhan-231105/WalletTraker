@@ -1,135 +1,194 @@
+/* login.css */
 .login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
 }
 
 .login-card {
   background: white;
-  padding: 2rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  padding: 40px;
   width: 100%;
   max-width: 400px;
 }
 
-h2 {
+.login-header {
   text-align: center;
-  margin-bottom: 1.5rem;
-  color: #333;
+  margin-bottom: 30px;
+}
+
+.login-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.login-header p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 20px;
 }
 
-label {
+.form-group label {
   display: block;
-  margin-bottom: 0.5rem;
-  color: #555;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+  font-size: 14px;
 }
 
-input {
+.form-control {
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
-input.invalid {
-  border-color: #ff4d4f;
+.form-control:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-.error {
-  color: #ff4d4f;
-  font-size: 0.85rem;
-  margin-top: 0.25rem;
+.form-control.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
-button[type="submit"] {
+.error-message {
+  margin-top: 6px;
+  font-size: 14px;
+  color: #ef4444;
+}
+
+.btn-primary {
   width: 100%;
-  padding: 0.75rem;
-  background-color: #007bff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-top: 10px;
 }
 
-button[type="submit"]:hover {
-  background-color: #0056b3;
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
-button[type="submit"]:disabled {
-  background-color: #cccccc;
+.btn-primary:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .divider {
-  display: flex;
-  align-items: center;
-  margin: 1.5rem 0;
-  color: #666;
-}
-
-.divider span {
-  flex-grow: 1;
   text-align: center;
+  margin: 30px 0;
   position: relative;
 }
 
-.divider span::before,
-.divider span::after {
+.divider::before {
   content: '';
   position: absolute;
   top: 50%;
-  width: 45%;
-  height: 1px;
-  background: #ddd;
-}
-
-.divider span::before {
   left: 0;
-}
-
-.divider span::after {
   right: 0;
+  height: 1px;
+  background: #e5e7eb;
 }
 
-.social-login {
+.divider span {
+  background: white;
+  color: #9ca3af;
+  padding: 0 16px;
+  font-size: 14px;
+  position: relative;
+}
+
+.social-buttons {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  gap: 12px;
 }
 
-.google-btn, .github-btn {
+.btn-social {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
   background: white;
   cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.3s;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
 }
 
-.google-btn img, .github-btn img {
-  width: 24px;
-  height: 24px;
-  margin-right: 0.5rem;
+.btn-social:hover:not(:disabled) {
+  border-color: #d1d5db;
+  background: #f9fafb;
+  transform: translateY(-1px);
 }
 
-.google-btn:hover {
-  background-color: #f8f9fa;
+.btn-social:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
-.github-btn:hover {
-  background-color: #f8f9fa;
+.btn-social.google {
+  color: #4285f4;
+}
+
+.btn-social.github {
+  color: #333;
+}
+
+.btn-social .icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* If using SVG icons instead of emoji */
+.btn-social img.icon {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 10px;
+  }
+  
+  .login-card {
+    padding: 30px 20px;
+  }
+  
+  .login-header h1 {
+    font-size: 24px;
+  }
+  
+  .social-buttons {
+    flex-direction: column;
+  }
 }

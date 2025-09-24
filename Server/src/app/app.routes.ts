@@ -6,7 +6,7 @@ import { HomeComponent } from './home/home';
 import { DashboardComponent } from './components/dashboard/dashboard';
 import { BillingComponent } from './components/billing/billing';
 import { InventoryComponent } from './components/inventory/inventory';
-//import { ReportsComponent } from './components/reports/reports';
+import { ReportsComponent } from './components/reports/reports';
 //import { QrPaymentComponent } from './components/qr-payment/qr-payment';
 
 export const routes: Routes = [
@@ -23,7 +23,7 @@ export const routes: Routes = [
   { path: 'dashboard', component: DashboardComponent },
   { path: 'billing', component: BillingComponent },
   { path: 'inventory', component: InventoryComponent },
-  //{ path: 'reports', component: ReportsComponent },
+  { path: 'reports', component: ReportsComponent },
   //{ path: 'qr-payment', component: QrPaymentComponent },
   
   // Wildcard route - redirect any unknown routes to login

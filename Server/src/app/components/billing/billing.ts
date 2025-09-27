@@ -209,6 +209,9 @@ interface Bill {
 
             <!-- Action Buttons -->
             <div class="bill-actions">
+              <button class="action-btn secondary" (click)="testJsonGeneration()">
+                🔍 Test JSON
+              </button>
               <button class="action-btn secondary" (click)="clearBill()">
                 🗑️ Clear Bill
               </button>
@@ -237,11 +240,12 @@ interface Bill {
             
             <div class="qr-section" *ngIf="currentBill.paymentMethod === 'upi'">
               <div class="qr-code">
-                <img *ngIf="upiQrCode" [src]="upiQrCode" alt="UPI QR Code" class="qr-image">
+                <h4>Payment QR</h4>
+                <img *ngIf="upiQrCode" [src]="upiQrCode" alt="UPI Payment QR Code" class="qr-image">
                 <div *ngIf="!upiQrCode" class="qr-placeholder">
-                  Generating QR Code...
+                  Generating Payment QR...
                 </div>
-                <small>Customer scans to pay</small>
+                <small>Scan to pay ₹{{ currentBill.total | number:'1.2-2' }}</small>
               </div>
             </div>
 
@@ -297,6 +301,9 @@ interface Bill {
             <button class="success-btn secondary" (click)="printBill()">
               🖨️ Print Bill
             </button>
+            <button class="success-btn secondary" (click)="downloadBillAsJson()">
+              💾 Save as JSON
+            </button>
             <button class="success-btn primary" (click)="startNewBill()">
               ➕ New Bill
             </button>
@@ -318,14 +325,16 @@ export class BillingComponent implements OnInit {
 
   // Mock products data
   availableProducts: Product[] = [
-    { id: 'P001', name: 'Bluetooth Headphones', price: 1.00, stock: 25, category: 'Electronics', barcode: '1234567890' },
+    { id: 'P001', name: 'Bluetooth Headphones', price: 1599.00, stock: 25, category: 'Electronics', barcode: '1234567890' },
     { id: 'P002', name: 'Phone Case', price: 299.00, stock: 50, category: 'Accessories', barcode: '2345678901' },
     { id: 'P003', name: 'USB Cable', price: 149.00, stock: 30, category: 'Accessories', barcode: '3456789012' },
     { id: 'P004', name: 'Power Bank', price: 899.00, stock: 15, category: 'Electronics', barcode: '4567890123' },
     { id: 'P005', name: 'Screen Guard', price: 199.00, stock: 8, category: 'Accessories', barcode: '5678901234' },
     { id: 'P006', name: 'Wireless Mouse', price: 699.00, stock: 20, category: 'Electronics', barcode: '6789012345' },
     { id: 'P007', name: 'Keyboard', price: 1199.00, stock: 12, category: 'Electronics', barcode: '7890123456' },
-    { id: 'P008', name: 'Webcam', price: 1.00, stock: 5, category: 'Electronics', barcode: '8901234567' }
+    { id: 'P008', name: 'Webcam', price: 1299.00, stock: 5, category: 'Electronics', barcode: '8901234567' },
+    { id: 'P009', name: 'Laptop', price: 55000.00, stock: 3, category: 'Electronics', barcode: '9012345678' },
+    { id: 'P010', name: 'Headphones', price: 2500.00, stock: 15, category: 'Electronics', barcode: '0123456789' }
   ];
 
   currentBill: Bill = {
@@ -513,45 +522,54 @@ export class BillingComponent implements OnInit {
     alert('📷 Barcode Scanner\n\nIn a real app, this would:\n- Open camera\n- Scan product barcodes\n- Automatically add products to bill');
   }
 
-  generateUpiTransactionNote(): string {
-    // Create a concise, GPay-compatible transaction note
-    let note = `Bill${this.currentBill.billNumber}:`;
-    const itemSummaries = this.currentBill.items.map(item => 
-      `${item.quantity}x${item.product.name.replace(/[^a-zA-Z0-9]/g, '')}`
-    );
-    note += itemSummaries.join(',');
-    note += `,${this.currentBill.total.toFixed(2)}`;
-    
-    // Truncate to 80 characters for GPay compatibility
-    if (note.length > 80) {
-      note = note.substring(0, 77) + '...';
-    }
-    console.log('Transaction Note:', note);
-    return note;
+  // Generate JSON bill in the exact format you specified
+  generateJsonBill(): any {
+    return {
+      products: this.currentBill.items.map(item => ({
+        name: item.product.name,
+        price: item.product.price
+      })),
+      total_amount: this.currentBill.total
+    };
   }
 
+  // Test method to verify JSON generation
+  testJsonGeneration() {
+    const jsonBill = this.generateJsonBill();
+    console.log('Generated JSON Bill:');
+    console.log(JSON.stringify(jsonBill, null, 2));
+    
+    // Show alert with JSON for testing
+    alert(`Generated JSON Bill:\n\n${JSON.stringify(jsonBill, null, 2)}`);
+  }
+
+  // Generate UPI QR code for payment
   generateUpiQrCode() {
-    // Use provided VPA
     const pa = 'sbragul26@okicici';
     const pn = 'WalletTracker';
     const am = this.currentBill.total.toFixed(2);
     const cu = 'INR';
-    const tn = this.generateUpiTransactionNote();
     const tr = this.currentBill.billNumber;
+    
+    // Simple transaction note (UPI has character limits)
+    const tn = `Bill ${this.currentBill.billNumber} - ${this.currentBill.items.length} items`;
 
-    // Minimal UPI URI for GPay compatibility
     const upiUri = `upi://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=${encodeURIComponent(cu)}&tn=${encodeURIComponent(tn)}&tr=${encodeURIComponent(tr)}`;
 
-    // Log URI for debugging
     console.log('UPI URI:', upiUri);
 
-    QRCode.toDataURL(upiUri, { errorCorrectionLevel: 'H', scale: 4 }, (error: Error | null | undefined, url: string) => {
+    QRCode.toDataURL(upiUri, { 
+      errorCorrectionLevel: 'M',
+      scale: 4,
+      margin: 2
+    }, (error: Error | null | undefined, url: string) => {
       if (error) {
         console.error('Error generating UPI QR code:', error);
         this.upiQrCode = null;
-        alert('Failed to generate UPI QR code. Please check the payment details and try again.');
+        alert('Failed to generate UPI QR code. Please try again.');
       } else {
         this.upiQrCode = url;
+        console.log('UPI QR Code generated successfully');
       }
     });
   }
@@ -640,17 +658,24 @@ export class BillingComponent implements OnInit {
     doc.setFontSize(12);
     y += 10;
     doc.text(`Payment Method: ${this.getPaymentMethodText()}`, 20, y);
+    
     if (this.currentBill.paymentMethod === 'cash' && this.cashReceived > 0) {
       y += 10;
       doc.text(`Cash Received: ₹${this.cashReceived.toFixed(2)}`, 20, y);
       y += 10;
       doc.text(`Change Given: ₹${this.getChangeAmount().toFixed(2)}`, 20, y);
     }
-    if (this.currentBill.paymentMethod === 'upi' && this.upiQrCode) {
-      y += 20;
-      doc.addImage(this.upiQrCode, 'PNG', 20, y, 50, 50);
-      y += 60;
+    
+    if (this.currentBill.paymentMethod === 'upi') {
+      if (this.upiQrCode) {
+        y += 15;
+        doc.text('UPI Payment QR:', 20, y);
+        y += 5;
+        doc.addImage(this.upiQrCode, 'PNG', 20, y, 40, 40);
+        y += 45;
+      }
     }
+    
     y += 20;
     doc.text('Thank you for shopping with us!', 105, y, { align: 'center' });
 
@@ -660,5 +685,18 @@ export class BillingComponent implements OnInit {
     } else {
       doc.save(`bill_${this.currentBill.billNumber}.pdf`);
     }
+  }
+
+  downloadBillAsJson() {
+    const jsonContent = JSON.stringify(this.generateJsonBill(), null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bill_${this.currentBill.billNumber}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   }
 }

@@ -3,10 +3,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import userRoutes from './routes/userRoutes.js';
+import inventoryRoutes from './routes/inventoryRoutes.js';
 
 dotenv.config();
-
-console.log('JWT_SECRET:', process.env.JWT_SECRET); // Debug
+console.log('JWT_SECRET:', process.env.JWT_SECRET);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,6 +34,7 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/api/auth', userRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -65,6 +66,9 @@ app.listen(PORT, () => {
   console.log('  POST   /api/auth/logout');
   console.log('  GET    /api/auth/me');
   console.log('  POST   /api/auth/change-password');
+  console.log('  GET    /api/inventory/products');
+  console.log('  POST   /api/inventory/products');
+  console.log('  POST   /api/inventory/products/bulk');
   console.log('  GET    /health\n');
 });
 

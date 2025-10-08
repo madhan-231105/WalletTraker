@@ -1,4 +1,3 @@
-/* inventory/inventory.component.css */
 .inventory-container {
   min-height: 100vh;
   background: #f8fafc;
@@ -31,6 +30,7 @@
   font-weight: 500;
   transition: all 0.2s;
   text-decoration: none;
+  z-index: 10; /* Added to ensure clickability */
 }
 
 .back-btn:hover {
@@ -59,6 +59,7 @@
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
+  z-index: 10; /* Added */
 }
 
 .add-product-btn:hover {
@@ -75,6 +76,7 @@
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
+  z-index: 10; /* Added */
 }
 
 .stock-alert-btn.has-alerts {
@@ -146,6 +148,7 @@
   font-weight: 500;
   color: #64748b;
   transition: all 0.2s;
+  z-index: 10; /* Added */
 }
 
 .view-btn.active {
@@ -373,6 +376,8 @@
   font-size: 12px;
   font-weight: 500;
   transition: all 0.2s;
+  z-index: 10; /* Ensure buttons are clickable */
+  pointer-events: auto; /* Explicitly enable pointer events */
 }
 
 .action-btn.edit {
@@ -511,6 +516,8 @@
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
+  z-index: 10; /* Ensure buttons are clickable */
+  pointer-events: auto; /* Explicitly enable pointer events */
 }
 
 .table-btn.edit {
@@ -566,6 +573,7 @@
   font-weight: 500;
   font-size: 16px;
   transition: all 0.2s;
+  z-index: 10; /* Added */
 }
 
 .empty-action-btn:hover {
@@ -597,6 +605,7 @@
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  z-index: 1001; /* Ensure modal is above overlay */
 }
 
 .modal-header {
@@ -620,6 +629,7 @@
   cursor: pointer;
   color: #a0aec0;
   transition: color 0.2s;
+  z-index: 1002; /* Ensure clickable */
 }
 
 .close-btn:hover {
@@ -674,6 +684,12 @@
   box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
 }
 
+.error-message {
+  color: #e53e3e;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
 .barcode-input {
   display: flex;
   gap: 8px;
@@ -692,6 +708,7 @@
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
+  z-index: 10; /* Added */
 }
 
 .scan-btn:hover {
@@ -797,6 +814,8 @@
   font-weight: 600;
   font-size: 16px;
   transition: all 0.2s;
+  z-index: 1002; /* Ensure buttons are clickable */
+  pointer-events: auto; /* Explicitly enable pointer events */
 }
 
 .modal-btn.secondary {

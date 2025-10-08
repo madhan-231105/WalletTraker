@@ -3,19 +3,18 @@ import {
   registerUser,
   loginUser,
   socialLogin,
-  getMe
+  getMe,
+  verifyToken
 } from '../controllers/userController.js';
 
 const router = express.Router();
 
-// Auth routes
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/google', socialLogin);
 router.post('/github', socialLogin);
-router.get('/me', getMe);
+router.get('/me', verifyToken, getMe);
 
-// Placeholder routes (implement as needed)
 router.post('/refresh', (req, res) => {
   res.status(501).json({ message: 'Refresh token not implemented' });
 });

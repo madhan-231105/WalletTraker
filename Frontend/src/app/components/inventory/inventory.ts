@@ -1,11 +1,12 @@
-// inventory/inventory.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { AuthService } from '../../login/auth.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 interface Product {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   price: number;
@@ -20,7 +21,7 @@ interface Product {
 }
 
 interface StockMovement {
-  id: string;
+  _id: string;
   productId: string;
   productName: string;
   type: 'IN' | 'OUT' | 'ADJUSTMENT';
@@ -176,7 +177,7 @@ interface StockMovement {
               <button class="action-btn stock" (click)="openStockModal(product)">
                 📦 Stock
               </button>
-              <button class="action-btn delete" (click)="deleteProduct(product.id)">
+              <button class="action-btn delete" (click)="deleteProduct(product._id)">
                 🗑️ Delete
               </button>
             </div>
@@ -235,7 +236,7 @@ interface StockMovement {
                   <div class="table-actions">
                     <button class="table-btn edit" (click)="editProduct(product)">✏️</button>
                     <button class="table-btn stock" (click)="openStockModal(product)">📦</button>
-                    <button class="table-btn delete" (click)="deleteProduct(product.id)">🗑️</button>
+                    <button class="table-btn delete" (click)="deleteProduct(product._id)">🗑️</button>
                   </div>
                 </td>
               </tr>
@@ -506,7 +507,9 @@ export class InventoryComponent implements OnInit {
 
   constructor(
     private router: Router,
-    private fb: FormBuilder
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private http: HttpClient
   ) {
     this.productForm = this.fb.group({
       name: ['', [Validators.required, Validators.minLength(2)]],
@@ -521,66 +524,52 @@ export class InventoryComponent implements OnInit {
   }
 
   ngOnInit() {
+    if (!this.authService.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
     this.loadProducts();
   }
 
   loadProducts() {
-    // Load from localStorage or initialize with mock data
-    const savedProducts = localStorage.getItem('wallettracker_products');
-    if (savedProducts) {
-      this.products = JSON.parse(savedProducts);
-    } else {
-      // Initialize with mock products
-      this.products = [
-        {
-          id: 'P001',
-          name: 'Bluetooth Headphones',
-          description: 'Wireless stereo headphones with noise cancellation',
-          price: 1299.00,
-          costPrice: 800.00,
-          stock: 25,
-          minStockAlert: 5,
-          category: 'Electronics',
-          barcode: '1234567890123',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 'P002',
-          name: 'Phone Case',
-          description: 'Protective case for smartphones',
-          price: 299.00,
-          costPrice: 150.00,
-          stock: 50,
-          minStockAlert: 10,
-          category: 'Accessories',
-          barcode: '2345678901234',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: 'P003',
-          name: 'USB Cable',
-          description: 'High-speed USB charging cable',
-          price: 149.00,
-          costPrice: 75.00,
-          stock: 3,
-          minStockAlert: 15,
-          category: 'Accessories',
-          barcode: '3456789012345',
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ];
-      this.saveProducts();
-    }
-    
-    this.filterProducts();
-    this.updateLowStockProducts();
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    this.http.get<Product[]>('http://localhost:3000/api/inventory/products', { headers }).subscribe({
+      next: (data) => {
+        this.products = data.map(product => ({
+          ...product,
+          _id: product._id.toString()
+        }));
+        this.filterProducts();
+        this.updateLowStockProducts();
+      },
+      error: (err) => {
+        console.error('Failed to load products from API', err);
+        this.products = [];
+        this.filterProducts();
+        this.updateLowStockProducts();
+      }
+    });
   }
 
   saveProducts() {
-    localStorage.setItem('wallettracker_products', JSON.stringify(this.products));
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    const productsToSave = this.products.map(product => ({
+      ...product,
+      _id: product._id || undefined // Ensure _id is not sent for new products
+    }));
+
+    this.http.post('http://localhost:3000/api/inventory/products/bulk', productsToSave, { headers }).subscribe({
+      next: () => console.log('Products saved to API'),
+      error: (err) => {
+        console.error('Failed to save products to API', err);
+      }
+    });
   }
 
   filterProducts() {
@@ -628,43 +617,70 @@ export class InventoryComponent implements OnInit {
     this.isSaving = true;
     const formValue = this.productForm.value;
 
-    if (this.editingProduct) {
-      // Update existing product
-      const index = this.products.findIndex(p => p.id === this.editingProduct!.id);
-      if (index !== -1) {
-        this.products[index] = {
-          ...this.products[index],
-          ...formValue,
-          updatedAt: new Date()
-        };
-      }
-    } else {
-      // Add new product
-      const newProduct: Product = {
-        id: 'P' + Date.now(),
-        ...formValue,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      this.products.push(newProduct);
-    }
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
 
-    this.saveProducts();
-    this.filterProducts();
-    this.updateLowStockProducts();
-    
-    setTimeout(() => {
-      this.isSaving = false;
-      this.closeProductModal();
-    }, 500);
+    if (this.editingProduct) {
+      this.http.put<Product>(`http://localhost:3000/api/inventory/products/${this.editingProduct._id}`, formValue, { headers }).subscribe({
+        next: (updatedProduct: Product) => {
+          const index = this.products.findIndex(p => p._id === this.editingProduct!._id);
+          if (index !== -1) {
+            this.products[index] = { ...updatedProduct, _id: updatedProduct._id.toString() };
+          }
+          this.filterProducts();
+          this.updateLowStockProducts();
+          this.isSaving = false;
+          this.closeProductModal();
+        },
+        error: (err) => {
+          console.error('Failed to update product via API', err);
+          this.isSaving = false;
+          this.closeProductModal();
+        }
+      });
+    } else {
+      this.http.post<Product>('http://localhost:3000/api/inventory/products', formValue, { headers }).subscribe({
+        next: (newProduct: Product) => {
+          this.products.push({ ...newProduct, _id: newProduct._id.toString() });
+          this.filterProducts();
+          this.updateLowStockProducts();
+          this.isSaving = false;
+          this.closeProductModal();
+        },
+        error: (err) => {
+          console.error('Failed to add product via API', err);
+          this.isSaving = false;
+          this.closeProductModal();
+        }
+      });
+    }
   }
 
   deleteProduct(productId: string) {
+    if (!productId || productId === 'undefined') {
+      console.error('Invalid product ID:', productId);
+      return;
+    }
+
     if (confirm('Are you sure you want to delete this product?')) {
-      this.products = this.products.filter(p => p.id !== productId);
-      this.saveProducts();
-      this.filterProducts();
-      this.updateLowStockProducts();
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${this.authService.getToken()}`
+      });
+
+      this.http.delete(`http://localhost:3000/api/inventory/products/${productId}`, { headers }).subscribe({
+        next: () => {
+          this.products = this.products.filter(p => p._id !== productId);
+          this.filterProducts();
+          this.updateLowStockProducts();
+        },
+        error: (err) => {
+          console.error('Failed to delete product via API', err);
+          this.products = this.products.filter(p => p._id !== productId);
+          this.filterProducts();
+          this.updateLowStockProducts();
+        }
+      });
     }
   }
 
@@ -681,49 +697,70 @@ export class InventoryComponent implements OnInit {
     this.selectedProduct = null;
   }
 
-  adjustStock() {
+adjustStock() {
     if (!this.selectedProduct || !this.stockAdjustmentQuantity || !this.stockAdjustmentReason) return;
 
-    const product = this.products.find(p => p.id === this.selectedProduct!.id);
-    if (!product) return;
-
-    let newStock = product.stock;
+    // Calculate the new stock value based on adjustment type
+    let newStockValue = this.getNewStockLevel();
     
-    switch (this.stockAdjustmentType) {
-      case 'add':
-        newStock += this.stockAdjustmentQuantity;
-        break;
-      case 'remove':
-        newStock = Math.max(0, newStock - this.stockAdjustmentQuantity);
-        break;
-      case 'set':
-        newStock = this.stockAdjustmentQuantity;
-        break;
-    }
+    const adjustmentData = {
+      stock: newStockValue,
+      adjustmentType: this.stockAdjustmentType,
+      quantity: this.stockAdjustmentQuantity,
+      reason: this.stockAdjustmentReason
+    };
 
-    product.stock = newStock;
-    product.updatedAt = new Date();
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
 
-    // Record stock movement
-    this.recordStockMovement(product, this.stockAdjustmentType, this.stockAdjustmentQuantity, this.stockAdjustmentReason);
-
-    this.saveProducts();
-    this.filterProducts();
-    this.updateLowStockProducts();
-    this.closeStockModal();
+    // Use PUT to update the product with new stock value
+    this.http.put<any>(`http://localhost:3000/api/inventory/products/${this.selectedProduct._id}`, 
+      { ...this.selectedProduct, stock: newStockValue }, 
+      { headers }
+    ).subscribe({
+      next: (response: any) => {
+        console.log('Stock adjustment response:', response);
+        
+        const index = this.products.findIndex(p => p._id === this.selectedProduct!._id);
+        if (index !== -1) {
+          // Update the product in the local array
+          this.products[index] = {
+            ...this.products[index],
+            stock: newStockValue,
+            updatedAt: new Date()
+          };
+          
+          this.recordStockMovement(
+            this.products[index], 
+            this.stockAdjustmentType === 'add' ? 'IN' : this.stockAdjustmentType === 'remove' ? 'OUT' : 'ADJUSTMENT',
+            this.stockAdjustmentQuantity, 
+            this.stockAdjustmentReason
+          );
+        }
+        
+        this.filterProducts();
+        this.updateLowStockProducts();
+        this.closeStockModal();
+      },
+      error: (err) => {
+        console.error('Failed to adjust stock via API', err);
+        alert('Failed to adjust stock. Please try again.');
+        this.closeStockModal();
+      }
+    });
   }
-
   recordStockMovement(product: Product, type: string, quantity: number, reason: string) {
     const movements = JSON.parse(localStorage.getItem('wallettracker_stock_movements') || '[]');
     const movement: StockMovement = {
-      id: 'SM' + Date.now(),
-      productId: product.id,
+      _id: 'SM' + Date.now(),
+      productId: product._id,
       productName: product.name,
       type: type.toUpperCase() as 'IN' | 'OUT' | 'ADJUSTMENT',
       quantity: quantity,
       reason: reason,
       timestamp: new Date(),
-      user: 'Current User'
+      user: this.authService.getCurrentUser()?.name || 'Current User'
     };
     movements.push(movement);
     localStorage.setItem('wallettracker_stock_movements', JSON.stringify(movements));
@@ -745,7 +782,6 @@ export class InventoryComponent implements OnInit {
   }
 
   scanBarcode() {
-    // Mock barcode scanning
     const mockBarcode = '123456789' + Math.floor(Math.random() * 10000);
     this.productForm.patchValue({ barcode: mockBarcode });
     alert('📷 Barcode scanned: ' + mockBarcode);
@@ -782,4 +818,5 @@ export class InventoryComponent implements OnInit {
     if (product.stock === 0) return 'Out of Stock';
     if (product.stock <= product.minStockAlert) return 'Low Stock';
     return 'In Stock';
-  }}
+  }
+}

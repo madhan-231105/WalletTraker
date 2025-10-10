@@ -140,38 +140,44 @@ export const updateStock = async (req, res) => {
 
     const product = await Product.findById(id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
-
     if (!product.userId.equals(req.user.id))
       return res.status(403).json({ message: 'Unauthorized to update stock' });
 
+    let newStock;
     switch (type) {
       case 'IN':
-        product.stock += quantity;
+        newStock = product.stock + quantity;
         break;
       case 'OUT':
-        product.stock = Math.max(0, product.stock - quantity);
+        newStock = Math.max(0, product.stock - quantity);
         break;
       case 'ADJUSTMENT':
-        product.stock = quantity;
+        newStock = quantity;
         break;
       default:
         return res.status(400).json({ message: 'Invalid stock adjustment type' });
     }
 
-    await product.save();
+    // Update only the stock field, avoiding full document validation
+    const updatedProduct = await Product.findByIdAndUpdate(
+      id,
+      { stock: newStock },
+      { new: true } // return updated document
+    );
 
+    // Log stock movement
     await StockMovement.create({
-      productId: product._id,
-      productName: product.name,
+      productId: updatedProduct._id,
+      productName: updatedProduct.name,
       type,
       quantity,
       reason,
       user: req.user.id
     });
 
-    res.json({ message: 'Stock updated successfully', product });
+    res.json({ message: 'Stock updated successfully', product: updatedProduct });
   } catch (error) {
     console.error('Update stock error:', error);
-    res.status(500).json({ message: 'Error updating stock', error: error.message });
+    res.status(500).json({ message: 'Failed to update stock', error: error.message });
   }
 };

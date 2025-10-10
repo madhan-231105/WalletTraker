@@ -10,4 +10,5 @@ router.post('/products/bulk', verifyToken, createProductsBulk);
 router.put('/products/:id', verifyToken, updateProduct);          // Edit product
 router.put('/products/:id/stock', verifyToken, updateStock);      // Update stock
 router.delete('/products/:id', verifyToken, deleteProduct);       // Delete product
+
 export default router;

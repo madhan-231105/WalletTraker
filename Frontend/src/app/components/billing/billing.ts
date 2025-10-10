@@ -2,16 +2,26 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { forkJoin } from 'rxjs';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
+import { AuthService } from '../../login/auth.service';
 
 interface Product {
-  id: string;
+  _id: string;
   name: string;
   price: number;
   stock: number;
   category: string;
   barcode?: string;
+  description?: string;
+  costPrice?: number;
+  minStockAlert?: number;
+  createdAt?: Date;
+  updatedAt?: Date;
+  image?: string;
+  userId?: string; // Added to match backend
 }
 
 interface BillItem {
@@ -317,25 +327,12 @@ interface Bill {
 export class BillingComponent implements OnInit {
   searchQuery = '';
   filteredProducts: Product[] = [];
+  availableProducts: Product[] = [];
   discountPercent = 0;
   cashReceived = 0;
   showPaymentModal = false;
   showSuccessModal = false;
   upiQrCode: string | null = null;
-
-  // Mock products data
-  availableProducts: Product[] = [
-    { id: 'P001', name: 'Bluetooth Headphones', price: 1599.00, stock: 25, category: 'Electronics', barcode: '1234567890' },
-    { id: 'P002', name: 'Phone Case', price: 299.00, stock: 50, category: 'Accessories', barcode: '2345678901' },
-    { id: 'P003', name: 'USB Cable', price: 149.00, stock: 30, category: 'Accessories', barcode: '3456789012' },
-    { id: 'P004', name: 'Power Bank', price: 899.00, stock: 15, category: 'Electronics', barcode: '4567890123' },
-    { id: 'P005', name: 'Screen Guard', price: 199.00, stock: 8, category: 'Accessories', barcode: '5678901234' },
-    { id: 'P006', name: 'Wireless Mouse', price: 699.00, stock: 20, category: 'Electronics', barcode: '6789012345' },
-    { id: 'P007', name: 'Keyboard', price: 1199.00, stock: 12, category: 'Electronics', barcode: '7890123456' },
-    { id: 'P008', name: 'Webcam', price: 1299.00, stock: 5, category: 'Electronics', barcode: '8901234567' },
-    { id: 'P009', name: 'Laptop', price: 55000.00, stock: 3, category: 'Electronics', barcode: '9012345678' },
-    { id: 'P010', name: 'Headphones', price: 2500.00, stock: 15, category: 'Electronics', barcode: '0123456789' }
-  ];
 
   currentBill: Bill = {
     billNumber: '',
@@ -349,11 +346,41 @@ export class BillingComponent implements OnInit {
     timestamp: new Date()
   };
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private http: HttpClient,
+    private authService: AuthService
+  ) {}
 
   ngOnInit() {
+    if (!this.authService.isAuthenticated()) {
+      this.router.navigate(['/login']);
+      return;
+    }
     this.generateBillNumber();
-    this.filteredProducts = this.availableProducts.slice(0, 6); // Show first 6 products initially
+    this.loadProducts();
+  }
+
+  loadProducts() {
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${this.authService.getToken()}`
+    });
+
+    this.http.get<Product[]>('http://localhost:3000/api/inventory/products', { headers }).subscribe({
+      next: (data) => {
+        this.availableProducts = data.map(product => ({
+          ...product,
+          _id: product._id.toString(),
+          userId: product.userId || '' // Handle userId
+        }));
+        this.filteredProducts = this.availableProducts.slice(0, 6);
+      },
+      error: (err) => {
+        console.error('Error fetching products:', err.status, err.error);
+        alert(`Failed to load products: ${err.error?.message || 'Unknown error'}`);
+        this.filteredProducts = [];
+      }
+    });
   }
 
   generateBillNumber() {
@@ -381,7 +408,7 @@ export class BillingComponent implements OnInit {
   addToCart(product: Product) {
     if (product.stock === 0) return;
 
-    const existingItem = this.currentBill.items.find(item => item.product.id === product.id);
+    const existingItem = this.currentBill.items.find(item => item.product._id === product._id);
     
     if (existingItem) {
       if (existingItem.quantity < product.stock) {
@@ -463,24 +490,54 @@ export class BillingComponent implements OnInit {
     return true; // UPI and Card payments are assumed to be valid
   }
 
-  confirmPayment() {
-    if (!this.isPaymentValid()) return;
+confirmPayment() {
+  if (!this.isPaymentValid()) return;
 
-    // Update stock quantities
-    this.currentBill.items.forEach(item => {
-      const product = this.availableProducts.find(p => p.id === item.product.id);
-      if (product) {
-        product.stock -= item.quantity;
+  const headers = new HttpHeaders({
+    'Authorization': `Bearer ${this.authService.getToken()}`,
+    'Content-Type': 'application/json'
+  });
+
+  // Map items to backend-friendly format
+  const billPayload = {
+    billNumber: this.currentBill.billNumber,
+    items: this.currentBill.items.map(item => ({
+      productId: item.product._id,
+      quantity: item.quantity,
+      subtotal: item.subtotal
+    })),
+    subtotal: this.currentBill.subtotal,
+    tax: this.currentBill.tax,
+    discount: this.currentBill.discount,
+    total: this.currentBill.total,
+    paymentMethod: this.currentBill.paymentMethod,
+    customerPhone: this.currentBill.customerPhone,
+    timestamp: this.currentBill.timestamp
+  };
+
+  // Send bill to backend, backend handles stock transactionally
+  this.http.post('http://localhost:3000/api/billing/bills', billPayload, { headers })
+    .subscribe({
+      next: (res: any) => {
+        console.log('Bill saved successfully:', res);
+        alert(`✅ Payment confirmed! Bill #${res.bill.billNumber} saved.`);
+
+        // Show success modal
+        this.showPaymentModal = false;
+        this.showSuccessModal = true;
+
+        // Reset cashReceived & UPI QR
+        this.cashReceived = 0;
+        this.upiQrCode = null;
+      },
+      error: (err) => {
+        console.error('Error saving bill:', err);
+        alert(`❌ Failed to save bill: ${err.error?.message || err.message || 'Unknown error'}`);
       }
     });
+}
 
-    // Close payment modal and show success
-    this.closePaymentModal();
-    this.showSuccessModal = true;
 
-    // Save bill to localStorage (mock API)
-    this.saveBillToStorage();
-  }
 
   saveBillToStorage() {
     const bills = JSON.parse(localStorage.getItem('wallettracker_bills') || '[]');
@@ -496,6 +553,7 @@ export class BillingComponent implements OnInit {
     this.showSuccessModal = false;
     this.clearBill();
     this.generateBillNumber();
+    this.loadProducts(); // Refresh products
   }
 
   clearBill() {
@@ -518,11 +576,9 @@ export class BillingComponent implements OnInit {
   }
 
   toggleBarcodeScanner() {
-    // Mock barcode scanner
     alert('📷 Barcode Scanner\n\nIn a real app, this would:\n- Open camera\n- Scan product barcodes\n- Automatically add products to bill');
   }
 
-  // Generate JSON bill in the exact format you specified
   generateJsonBill(): any {
     return {
       products: this.currentBill.items.map(item => ({
@@ -533,30 +589,21 @@ export class BillingComponent implements OnInit {
     };
   }
 
-  // Test method to verify JSON generation
   testJsonGeneration() {
     const jsonBill = this.generateJsonBill();
-    console.log('Generated JSON Bill:');
-    console.log(JSON.stringify(jsonBill, null, 2));
-    
-    // Show alert with JSON for testing
+    console.log('Generated JSON Bill:', JSON.stringify(jsonBill, null, 2));
     alert(`Generated JSON Bill:\n\n${JSON.stringify(jsonBill, null, 2)}`);
   }
 
-  // Generate UPI QR code for payment
   generateUpiQrCode() {
     const pa = 'sbragul26@okicici';
     const pn = 'WalletTracker';
     const am = this.currentBill.total.toFixed(2);
     const cu = 'INR';
     const tr = this.currentBill.billNumber;
-    
-    // Simple transaction note (UPI has character limits)
     const tn = `Bill ${this.currentBill.billNumber} - ${this.currentBill.items.length} items`;
 
     const upiUri = `upi://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=${encodeURIComponent(cu)}&tn=${encodeURIComponent(tn)}&tr=${encodeURIComponent(tr)}`;
-
-    console.log('UPI URI:', upiUri);
 
     QRCode.toDataURL(upiUri, { 
       errorCorrectionLevel: 'M',
@@ -569,12 +616,10 @@ export class BillingComponent implements OnInit {
         alert('Failed to generate UPI QR code. Please try again.');
       } else {
         this.upiQrCode = url;
-        console.log('UPI QR Code generated successfully');
       }
     });
   }
 
-  // Generating TXT bill (full details)
   generateTxtBill(): string {
     let txt = `----------------------------------------\n`;
     txt += `        WALLETTRACKER BILL\n`;
@@ -666,14 +711,12 @@ export class BillingComponent implements OnInit {
       doc.text(`Change Given: ₹${this.getChangeAmount().toFixed(2)}`, 20, y);
     }
     
-    if (this.currentBill.paymentMethod === 'upi') {
-      if (this.upiQrCode) {
-        y += 15;
-        doc.text('UPI Payment QR:', 20, y);
-        y += 5;
-        doc.addImage(this.upiQrCode, 'PNG', 20, y, 40, 40);
-        y += 45;
-      }
+    if (this.currentBill.paymentMethod === 'upi' && this.upiQrCode) {
+      y += 15;
+      doc.text('UPI Payment QR:', 20, y);
+      y += 5;
+      doc.addImage(this.upiQrCode, 'PNG', 20, y, 40, 40);
+      y += 45;
     }
     
     y += 20;

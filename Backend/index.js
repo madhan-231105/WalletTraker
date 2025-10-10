@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import userRoutes from './routes/userRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
+import billingRoutes from './routes/billingRoutes.js';
 
 dotenv.config();
 console.log('JWT_SECRET:', process.env.JWT_SECRET);
@@ -35,6 +36,7 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/auth', userRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/billing', billingRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -69,6 +71,10 @@ app.listen(PORT, () => {
   console.log('  GET    /api/inventory/products');
   console.log('  POST   /api/inventory/products');
   console.log('  POST   /api/inventory/products/bulk');
+  console.log('  PUT    /api/inventory/products/:id');
+  console.log('  PUT    /api/inventory/products/:id/stock');
+  console.log('  DELETE /api/inventory/products/:id');
+  console.log('  POST   /api/billing/bills');
   console.log('  GET    /health\n');
 });
 

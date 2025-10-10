@@ -7,7 +7,7 @@ const productSchema = new mongoose.Schema({
   stock: { type: Number, required: true, default: 0 },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   category: { type: String, required: true, default: 'Uncategorized' },
-  barcode: { type: String, required: true, default: '' },
+  barcode: { type: String, required: false, default: '' },
   costPrice: { type: Number, required: true, default: 0 },
   minStockAlert: { type: Number, required: true, default: 5 },
   createdAt: { type: Date, default: Date.now },

@@ -241,14 +241,22 @@
 }
 
 .payment-badge {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-weight: 600;
-  text-transform: uppercase;
-  display: inline-block;
+  display: inline-block;   /* wraps tightly around text */
+  padding: 0.2em 0.5em;   /* space around the text */
+  border-radius: 0.4em;   /* rounded corners */
+  font-weight: bold;
+  font-size: 0.9em;
 }
 
+.payment-badge {
+  display: inline-block;       /* Wraps tightly around text */
+  padding: 0.25em 0.6em;       /* Adjust space around the word */
+  border-radius: 0.4em;        /* Rounded corners */
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+/* Individual colors */
 .payment-badge.cash {
   background: #c6f6d5;
   color: #22543d;
@@ -325,5 +333,97 @@
 
   .summary-card .value, .payment-card .value {
     font-size: 24px;
+  }
+}
+
+/* Chart Container */
+.chart-container {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.chart-header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #f3f4f6;
+}
+
+.trend-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.trend-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.trend-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trend-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.trend-value.positive {
+  color: #10b981;
+}
+
+.trend-value.negative {
+  color: #ef4444;
+}
+
+.chart-container canvas {
+  max-height: 450px;
+  margin-top: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .chart-container {
+    padding: 1rem;
+  }
+  
+  .trend-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .trend-stat {
+    padding: 0.75rem;
+  }
+  
+  .trend-label {
+    font-size: 0.75rem;
+  }
+  
+  .trend-value {
+    font-size: 1.25rem;
+  }
+  
+  .chart-container canvas {
+    max-height: 350px;
+  }
+}
+
+@media (max-width: 480px) {
+  .trend-stats {
+    grid-template-columns: 1fr;
   }
 }

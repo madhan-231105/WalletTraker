@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { QrPayment } from './qr-payment';
+import { OverallReport } from './overall-report';
 
-describe('QrPayment', () => {
-  let component: QrPayment;
-  let fixture: ComponentFixture<QrPayment>;
+describe('OverallReport', () => {
+  let component: OverallReport;
+  let fixture: ComponentFixture<OverallReport>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [QrPayment]
+      imports: [OverallReport]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(QrPayment);
+    fixture = TestBed.createComponent(OverallReport);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

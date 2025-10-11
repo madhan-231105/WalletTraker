@@ -5,6 +5,8 @@ import mongoose from 'mongoose';
 import userRoutes from './routes/userRoutes.js';
 import inventoryRoutes from './routes/inventoryRoutes.js';
 import billingRoutes from './routes/billingRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
+import overallReportRoutes from './routes/overrallReportRoutes.js';
 
 dotenv.config();
 console.log('JWT_SECRET:', process.env.JWT_SECRET);
@@ -37,7 +39,8 @@ app.use((req, res, next) => {
 app.use('/api/auth', userRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/billing', billingRoutes);
-
+app.use('/api/reports', reportRoutes);
+app.use('/api/reports', overallReportRoutes); 
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
@@ -75,6 +78,8 @@ app.listen(PORT, () => {
   console.log('  PUT    /api/inventory/products/:id/stock');
   console.log('  DELETE /api/inventory/products/:id');
   console.log('  POST   /api/billing/bills');
+  console.log('  GET    /api/reports/today');
+  console.log('  GET    /api/reports/overall'); // Add this line
   console.log('  GET    /health\n');
 });
 

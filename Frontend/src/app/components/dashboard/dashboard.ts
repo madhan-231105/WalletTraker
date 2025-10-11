@@ -11,45 +11,6 @@ import { AuthService } from '../../login/auth.service';
   template: `
     <div class="dashboard-wrapper">
       <!-- Header -->
-      <header class="dashboard-header">
-        <div class="header-left">
-          <h1>💰 WalletTracker</h1>
-          <span class="shop-name">{{ shopName }}</span>
-        </div>
-        <div class="header-right">
-          <div class="user-info">
-            <span>👤 {{ currentUser?.name || currentUser?.email || 'Cashier' }}</span>
-            <small>{{ currentUser?.role || 'Staff' }}</small>
-          </div>
-          <button (click)="logout()" class="logout-btn" [disabled]="isLoggingOut">
-            {{ isLoggingOut ? 'Logging out...' : 'Logout' }}
-          </button>
-        </div>
-      </header>
-
-      <!-- Navigation Menu -->
-      <nav class="nav-menu">
-        <button class="nav-item active" routerLink="/dashboard">
-          <span class="nav-icon">🏠</span>
-          Dashboard
-        </button>
-        <button class="nav-item" routerLink="/billing">
-          <span class="nav-icon">🛒</span>
-          New Sale
-        </button>
-        <button class="nav-item" routerLink="/inventory">
-          <span class="nav-icon">📦</span>
-          Inventory
-        </button>
-        <button class="nav-item" routerLink="/reports">
-          <span class="nav-icon">📊</span>
-          Reports
-        </button>
-        <button class="nav-item" routerLink="/qr-payment">
-          <span class="nav-icon">📱</span>
-          QR Payment
-        </button>
-      </nav>
 
       <!-- Main Content -->
       <main class="dashboard-main">

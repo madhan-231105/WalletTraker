@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { HttpClient, HttpHeaders, HttpClientModule } from '@angular/common/http';
+import { AuthService } from '../../login/auth.service';
 
 @Component({
   selector: 'app-reports',
@@ -8,17 +10,6 @@ import { RouterModule } from '@angular/router';
   imports: [CommonModule, RouterModule],
   template: `
     <div class="reports-wrapper">
-      <!-- Header -->
-      <header class="reports-header">
-        <div class="header-left">
-          <h1>📊 Today's Report</h1>
-          <span class="date">{{ currentDate | date:'fullDate' }}</span>
-        </div>
-        <div class="header-right">
-          <button class="back-btn" routerLink="/dashboard">← Back to Dashboard</button>
-        </div>
-      </header>
-
       <!-- Main Content -->
       <main class="reports-main">
         <!-- Summary Section -->
@@ -116,44 +107,45 @@ import { RouterModule } from '@angular/router';
 })
 export class ReportsComponent implements OnInit {
   currentDate = new Date();
-  
-  // Summary data
+
+  // Default fallback data (until API loads)
   summary = {
-    totalSales: 25420.50,
-    transactionCount: 48,
-    avgTransactionValue: 529.60,
-    totalItemsSold: 127
+    totalSales: 0,
+    transactionCount: 0,
+    avgTransactionValue: 0,
+    totalItemsSold: 0
   };
 
-  // Payment breakdown
   paymentBreakdown = {
-    cash: 8500,
-    upi: 12400,
-    card: 4520.50,
-    cashPercentage: 33.4,
-    upiPercentage: 48.8,
-    cardPercentage: 17.8
+    cash: 0,
+    upi: 0,
+    card: 0,
+    cashPercentage: 0,
+    upiPercentage: 0,
+    cardPercentage: 0
   };
 
-  // Top selling items (same as dashboard for consistency)
-  topSellingItems = [
-    { name: 'Bluetooth Headphones', category: 'Electronics', soldQuantity: 12, revenue: 4800 },
-    { name: 'Phone Case', category: 'Accessories', soldQuantity: 8, revenue: 2400 },
-    { name: 'USB Cable', category: 'Accessories', soldQuantity: 15, revenue: 1500 },
-    { name: 'Power Bank', category: 'Electronics', soldQuantity: 5, revenue: 2500 },
-    { name: 'Screen Guard', category: 'Accessories', soldQuantity: 6, revenue: 900 }
-  ];
+  topSellingItems: any[] = [];
+  transactions: any[] = [];
 
-  // Transaction history
-  transactions = [
-    { billNumber: 'B001', time: new Date(), amount: 1250.00, paymentMethod: 'upi', itemCount: 3 },
-    { billNumber: 'B002', time: new Date(Date.now() - 300000), amount: 450.00, paymentMethod: 'cash', itemCount: 1 },
-    { billNumber: 'B003', time: new Date(Date.now() - 600000), amount: 2100.00, paymentMethod: 'card', itemCount: 4 },
-    { billNumber: 'B004', time: new Date(Date.now() - 900000), amount: 750.00, paymentMethod: 'upi', itemCount: 2 },
-    { billNumber: 'B005', time: new Date(Date.now() - 1200000), amount: 320.00, paymentMethod: 'cash', itemCount: 1 }
-  ];
+  constructor(private http: HttpClient, private authService: AuthService) {}
 
   ngOnInit() {
-    // In a real application, this would fetch data from a backend service
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${this.authService.getToken()}`
+    });
+
+    this.http.get('http://localhost:3000/api/reports/today', { headers }).subscribe({
+      next: (res: any) => {
+        this.summary = res.summary;
+        this.paymentBreakdown = res.paymentBreakdown;
+        this.topSellingItems = res.topSellingItems;
+        this.transactions = res.transactions;
+      },
+      error: (err) => {
+        console.error('❌ Error loading report:', err);
+        alert('Failed to load today’s report.');
+      }
+    });
   }
 }

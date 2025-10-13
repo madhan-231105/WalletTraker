@@ -1,8 +1,9 @@
-// dashboard/dashboard.ts
+// dashboard/dashboard.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../login/auth.service';
+import { DashboardService } from '../../services/dashboard.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -10,10 +11,21 @@ import { AuthService } from '../../login/auth.service';
   imports: [CommonModule, RouterModule],
   template: `
     <div class="dashboard-wrapper">
-      <!-- Header -->
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading dashboard...</p>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="error && !isLoading" class="error-message">
+        <span class="error-icon">⚠️</span>
+        <p>{{ error }}</p>
+        <button (click)="loadDashboardData()" class="retry-btn">Retry</button>
+      </div>
 
       <!-- Main Content -->
-      <main class="dashboard-main">
+      <main class="dashboard-main" *ngIf="!isLoading && !error">
         <!-- Quick Stats Grid -->
         <section class="stats-section">
           <div class="stat-card today-sales">
@@ -25,7 +37,9 @@ import { AuthService } from '../../login/auth.service';
               </div>
             </div>
             <div class="stat-footer">
-              <span class="growth-indicator positive">+{{ salesGrowth }}%</span>
+              <span class="growth-indicator" [ngClass]="salesGrowth >= 0 ? 'positive' : 'negative'">
+                {{ salesGrowth >= 0 ? '+' : '' }}{{ salesGrowth }}%
+              </span>
               <small>from yesterday</small>
             </div>
           </div>
@@ -43,7 +57,7 @@ import { AuthService } from '../../login/auth.service';
             </div>
           </div>
 
-          <div class="stat-card stock-alert">
+          <div class="stat-card stock-alert" [ngClass]="{'alert': lowStockCount > 0}">
             <div class="stat-header">
               <span class="stat-icon">⚠️</span>
               <div>
@@ -108,11 +122,11 @@ import { AuthService } from '../../login/auth.service';
               </div>
             </button>
 
-            <button class="action-card" (click)="showQRCode()">
-              <span class="action-icon">📱</span>
+            <button class="action-card" (click)="showOverallReport()">
+              <span class="action-icon">📊</span>
               <div class="action-content">
-                <h4>QR Payment</h4>
-                <p>Show payment QR</p>
+                <h4>Overall Report</h4>
+                <p>Show the report for overall Sales</p>
               </div>
             </button>
           </div>
@@ -121,8 +135,16 @@ import { AuthService } from '../../login/auth.service';
         <!-- Recent Activity -->
         <section class="recent-activity">
           <div class="activity-column">
-            <h3>🏆 Top Selling Today</h3>
+            <div class="section-header">
+              <h3>🏆 Top Selling Today</h3>
+              <button class="refresh-btn" (click)="loadDashboardData()" [disabled]="isRefreshing">
+                {{ isRefreshing ? '↻' : '🔄' }}
+              </button>
+            </div>
             <div class="activity-list">
+              <div *ngIf="topSellingItems.length === 0" class="empty-state">
+                <p>No sales today yet</p>
+              </div>
               <div class="activity-item" *ngFor="let item of topSellingItems; let i = index">
                 <div class="item-rank">{{ i + 1 }}</div>
                 <div class="item-details">
@@ -138,8 +160,13 @@ import { AuthService } from '../../login/auth.service';
           </div>
 
           <div class="activity-column">
-            <h3>🕒 Recent Transactions</h3>
+            <div class="section-header">
+              <h3>🕒 Recent Transactions</h3>
+            </div>
             <div class="activity-list">
+              <div *ngIf="recentTransactions.length === 0" class="empty-state">
+                <p>No transactions yet</p>
+              </div>
               <div class="activity-item" *ngFor="let transaction of recentTransactions">
                 <div class="transaction-details">
                   <strong>Bill #{{ transaction.billNumber }}</strong>
@@ -162,60 +189,88 @@ import { AuthService } from '../../login/auth.service';
 })
 export class DashboardComponent implements OnInit {
   currentUser: any = null;
-  shopName = 'ABC Electronics Store';
-  isLoggingOut = false;
+  isLoading = true;
+  isRefreshing = false;
+  error: string | null = null;
 
-  // Mock dashboard data
-  todaySales = 25420.50;
-  salesGrowth = 12.5;
-  todayTransactions = 48;
-  avgTransactionValue = 529.6;
-  lowStockCount = 3;
+  // Dashboard data
+  todaySales = 0;
+  salesGrowth = 0;
+  todayTransactions = 0;
+  avgTransactionValue = 0;
+  lowStockCount = 0;
 
   paymentBreakdown = {
-    cash: 8500,
-    upi: 12400,
-    card: 4520.50
+    cash: 0,
+    upi: 0,
+    card: 0
   };
 
-  topSellingItems = [
-    { name: 'Bluetooth Headphones', category: 'Electronics', soldQuantity: 12, revenue: 4800 },
-    { name: 'Phone Case', category: 'Accessories', soldQuantity: 8, revenue: 2400 },
-    { name: 'USB Cable', category: 'Accessories', soldQuantity: 15, revenue: 1500 },
-    { name: 'Power Bank', category: 'Electronics', soldQuantity: 5, revenue: 2500 },
-    { name: 'Screen Guard', category: 'Accessories', soldQuantity: 6, revenue: 900 }
-  ];
-
-  recentTransactions = [
-    { billNumber: 'B001', amount: 1250.00, paymentMethod: 'upi', time: new Date() },
-    { billNumber: 'B002', amount: 450.00, paymentMethod: 'cash', time: new Date(Date.now() - 300000) },
-    { billNumber: 'B003', amount: 2100.00, paymentMethod: 'card', time: new Date(Date.now() - 600000) },
-    { billNumber: 'B004', amount: 750.00, paymentMethod: 'upi', time: new Date(Date.now() - 900000) },
-    { billNumber: 'B005', amount: 320.00, paymentMethod: 'cash', time: new Date(Date.now() - 1200000) }
-  ];
+  topSellingItems: any[] = [];
+  recentTransactions: any[] = [];
 
   constructor(
     private router: Router,
-    private authService: AuthService
+    private authService: AuthService,
+    private dashboardService: DashboardService
   ) {}
 
   ngOnInit() {
     this.currentUser = this.authService.getCurrentUser();
+    this.loadDashboardData();
+  }
+
+  loadDashboardData() {
+    this.isLoading = true;
+    this.isRefreshing = true;
+    this.error = null;
+
+    // Using the complete endpoint for efficiency (single API call)
+    this.dashboardService.getCompleteDashboard().subscribe({
+      next: (response) => {
+        if (response.success) {
+          const { stats, topSellingItems, recentTransactions } = response.data;
+          
+          // Update stats
+          this.todaySales = stats.todaySales;
+          this.salesGrowth = stats.salesGrowth;
+          this.todayTransactions = stats.todayTransactions;
+          this.avgTransactionValue = stats.avgTransactionValue;
+          this.lowStockCount = stats.lowStockCount;
+          this.paymentBreakdown = stats.paymentBreakdown;
+          
+          // Update top selling items
+          this.topSellingItems = topSellingItems;
+          
+          // Update recent transactions
+          this.recentTransactions = recentTransactions;
+          
+          this.isLoading = false;
+          this.isRefreshing = false;
+        }
+      },
+      error: (err) => {
+        console.error('Error loading dashboard:', err);
+        this.error = 'Failed to load dashboard data. Please try again.';
+        this.isLoading = false;
+        this.isRefreshing = false;
+
+        // If unauthorized, redirect to login
+        if (err.status === 401) {
+          this.authService.logout();
+          this.router.navigate(['/login']);
+        }
+      }
+    });
   }
 
   logout() {
-    this.isLoggingOut = true;
     this.authService.logout();
-    
-    setTimeout(() => {
-      this.router.navigate(['/login']).then(() => {
-        this.isLoggingOut = false;
-      });
-    }, 500);
+    this.router.navigate(['/login']);
   }
 
-  showQRCode() {
-    alert('🔄 QR Payment feature will be implemented next!');
+  showOverallReport() {
+    this.router.navigate(['/overall-report']);
   }
 
   showTodayReport() {

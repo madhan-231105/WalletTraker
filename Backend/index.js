@@ -7,6 +7,7 @@ import inventoryRoutes from './routes/inventoryRoutes.js';
 import billingRoutes from './routes/billingRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import overallReportRoutes from './routes/overrallReportRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 dotenv.config();
 console.log('JWT_SECRET:', process.env.JWT_SECRET);
@@ -19,8 +20,8 @@ mongoose.connect(process.env.MONGODB_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true
 })
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
 // Middleware
 app.use(cors({
@@ -41,6 +42,8 @@ app.use('/api/inventory', inventoryRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/reports', overallReportRoutes); 
+app.use('/api/dashboard', dashboardRoutes);
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
@@ -63,6 +66,7 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
   console.log('\n📋 Available endpoints:');
+  console.log('\n🔐 Auth:');
   console.log('  POST   /api/auth/register');
   console.log('  POST   /api/auth/login');
   console.log('  POST   /api/auth/google');
@@ -71,15 +75,30 @@ app.listen(PORT, () => {
   console.log('  POST   /api/auth/logout');
   console.log('  GET    /api/auth/me');
   console.log('  POST   /api/auth/change-password');
+  
+  console.log('\n📦 Inventory:');
   console.log('  GET    /api/inventory/products');
   console.log('  POST   /api/inventory/products');
   console.log('  POST   /api/inventory/products/bulk');
   console.log('  PUT    /api/inventory/products/:id');
   console.log('  PUT    /api/inventory/products/:id/stock');
   console.log('  DELETE /api/inventory/products/:id');
+  
+  console.log('\n🧾 Billing:');
   console.log('  POST   /api/billing/bills');
+  
+  console.log('\n📊 Dashboard:');
+  console.log('  GET    /api/dashboard/stats');
+  console.log('  GET    /api/dashboard/top-selling');
+  console.log('  GET    /api/dashboard/recent-transactions');
+  console.log('  GET    /api/dashboard/complete');
+  console.log('  GET    /api/dashboard/weekly-trend');
+  
+  console.log('\n📈 Reports:');
   console.log('  GET    /api/reports/today');
-  console.log('  GET    /api/reports/overall'); // Add this line
+  console.log('  GET    /api/reports/overall');
+  
+  console.log('\n💚 Health:');
   console.log('  GET    /health\n');
 });
 

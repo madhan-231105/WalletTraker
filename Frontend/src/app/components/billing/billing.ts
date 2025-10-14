@@ -595,31 +595,96 @@ confirmPayment() {
     alert(`Generated JSON Bill:\n\n${JSON.stringify(jsonBill, null, 2)}`);
   }
 
-  generateUpiQrCode() {
-    const pa = 'sbragul26@okicici';
-    const pn = 'WalletTracker';
-    const am = this.currentBill.total.toFixed(2);
-    const cu = 'INR';
-    const tr = this.currentBill.billNumber;
-    const tn = `Bill ${this.currentBill.billNumber} - ${this.currentBill.items.length} items`;
-
-    const upiUri = `upi://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=${encodeURIComponent(cu)}&tn=${encodeURIComponent(tn)}&tr=${encodeURIComponent(tr)}`;
-
-    QRCode.toDataURL(upiUri, { 
-      errorCorrectionLevel: 'M',
-      scale: 4,
-      margin: 2
-    }, (error: Error | null | undefined, url: string) => {
-      if (error) {
-        console.error('Error generating UPI QR code:', error);
-        this.upiQrCode = null;
-        alert('Failed to generate UPI QR code. Please try again.');
-      } else {
-        this.upiQrCode = url;
-      }
-    });
+generateCompactBillNote(): string {
+  // Simple single-line format that works with all UPI apps
+  let items = this.currentBill.items.map(item => 
+    `${item.product.name}(${item.quantity}x${item.product.price.toFixed(2)})`
+  ).join(', ');
+  
+  let note = `Bill ${this.currentBill.billNumber}: ${items}. Subtotal ₹${this.currentBill.subtotal.toFixed(2)}`;
+  
+  if (this.currentBill.discount > 0) {
+    note += `, Disc ₹${this.currentBill.discount.toFixed(2)}`;
   }
+  
+  note += `, Tax ₹${this.currentBill.tax.toFixed(2)}, Total ₹${this.currentBill.total.toFixed(2)}`;
+  
+  return note;
+}
 
+generateDetailedBillNote(): string {
+  let note = `WALLETTRACKER\n`;
+  note += `Bill: ${this.currentBill.billNumber}\n`;
+  note += `Date: ${this.currentBill.timestamp.toLocaleDateString()}\n`;
+  note += `---\n`;
+  
+  this.currentBill.items.forEach(item => {
+    note += `${item.product.name}\n`;
+    note += `${item.quantity}x₹${item.product.price.toFixed(2)} = ₹${item.subtotal.toFixed(2)}\n`;
+  });
+  
+  note += `---\n`;
+  note += `Subtotal: ₹${this.currentBill.subtotal.toFixed(2)}\n`;
+  if (this.currentBill.discount > 0) {
+    note += `Discount: ₹${this.currentBill.discount.toFixed(2)}\n`;
+  }
+  note += `GST(18%): ₹${this.currentBill.tax.toFixed(2)}\n`;
+  note += `TOTAL: ₹${this.currentBill.total.toFixed(2)}\n`;
+  note += `Thank you!`;
+  
+  return note;
+}
+
+generateUpiQrCode() {
+  const pa = 'sbragul26@okicici';
+  const pn = 'WalletTracker';
+  const am = this.currentBill.total.toFixed(2);
+  const cu = 'INR';
+  const tr = this.currentBill.billNumber;
+  
+  // Generate compact bill for UPI notes (single line format)
+  const billNote = this.generateCompactBillNote();
+  
+  const upiUri = `upi://pay?pa=${encodeURIComponent(pa)}&pn=${encodeURIComponent(pn)}&am=${encodeURIComponent(am)}&cu=${encodeURIComponent(cu)}&tn=${encodeURIComponent(billNote)}&tr=${encodeURIComponent(tr)}`;
+
+  // Log UPI QR contents to console
+  console.log('='.repeat(50));
+  console.log('📱 UPI QR CODE CONTENTS');
+  console.log('='.repeat(50));
+  console.log('Raw UPI URI:');
+  console.log(upiUri);
+  console.log('\n' + '-'.repeat(50));
+  console.log('Decoded Parameters:');
+  console.log('-'.repeat(50));
+  console.log(`Payee Address (pa): ${pa}`);
+  console.log(`Payee Name (pn): ${pn}`);
+  console.log(`Amount (am): ₹${am}`);
+  console.log(`Currency (cu): ${cu}`);
+  console.log(`Transaction Ref (tr): ${tr}`);
+  console.log(`Transaction Note (tn):`);
+  console.log(billNote);
+  console.log('-'.repeat(50));
+  console.log('\n📋 Full Bill Details (for console only):');
+  console.log('-'.repeat(50));
+  console.log(this.generateDetailedBillNote());
+  console.log('='.repeat(50));
+
+  QRCode.toDataURL(upiUri, { 
+    errorCorrectionLevel: 'M',
+    scale: 4,
+    margin: 2
+  }, (error: Error | null | undefined, url: string) => {
+    if (error) {
+      console.error('❌ Error generating UPI QR code:', error);
+      this.upiQrCode = null;
+      alert('Failed to generate UPI QR code. Please try again.');
+    } else {
+      this.upiQrCode = url;
+      console.log('✅ UPI QR Code generated successfully!');
+      console.log('QR Code Data URL length:', url.length, 'characters');
+    }
+  });
+}
   generateTxtBill(): string {
     let txt = `----------------------------------------\n`;
     txt += `        WALLETTRACKER BILL\n`;
